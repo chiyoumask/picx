@@ -2,6 +2,7 @@ import { UserConfigInfoModel } from '@/common/model'
 import request from '@/utils/request'
 import axios from '@/utils/request/axios'
 import { GH_PAGES } from '@/common/constant'
+import i18n from '@/plugins/vue/i18n'
 
 /**
  * 获取分支信息
@@ -12,7 +13,8 @@ import { GH_PAGES } from '@/common/constant'
 export const getBranchInfo = (owner: string, repo: string, branch: string) => {
   return request({
     url: `/repos/${owner}/${repo}/branches/${branch}`,
-    method: 'GET'
+    method: 'GET',
+    noCache: true
   })
 }
 
@@ -30,12 +32,7 @@ export const getBranchInfoList = (
     const tmpList: any[] = await request({
       url: `/repos/${owner}/${repo}/branches`,
       method: 'GET',
-      cache: {
-        maxAge: 0 // 设置缓存的最大寿命为 0，禁用缓存
-      },
-      params: {
-        timestamp: Date.now() // 添加时间戳参数，防止获取缓存的数据
-      }
+      noCache: true
     })
 
     if (tmpList && tmpList.length) {
@@ -58,18 +55,13 @@ export const getBranchInfoList = (
  * 将当前分支 checkout 到 gh-pages 分支
  * 部署到 GitHub Pages，完成图片资源托管，获取访问能力
  * @param userConfigInfo
- * @param $t
  * @param cb
  */
-export const checkoutGhPagesBranch = async (
-  userConfigInfo: UserConfigInfoModel,
-  $t: any,
-  cb?: any
-) => {
-  const { owner, selectedRepo: repo, selectedBranch } = userConfigInfo
+export const checkoutGhPagesBranch = async (userConfigInfo: UserConfigInfoModel, cb?: any) => {
+  const { owner, repo, branch } = userConfigInfo
 
   const initLoading = ElLoading.service({
-    text: $t('settings.image_hosting_deploy.deploying')
+    text: i18n.global.t('settings_page.image_hosting_deploy.deploying')
   })
 
   const cbHandler = (evt: boolean = false) => {
@@ -102,7 +94,7 @@ export const checkoutGhPagesBranch = async (
       // 2、获取当前分支的 SHA 值
       let sha = ''
       const res1 = await request({
-        url: `/repos/${owner}/${repo}/git/refs/heads/${selectedBranch}`,
+        url: `/repos/${owner}/${repo}/git/refs/heads/${branch}`,
         method: 'GET'
       })
 
@@ -119,7 +111,7 @@ export const checkoutGhPagesBranch = async (
       const res2 = await request({
         url: `/repos/${owner}/${repo}/git/refs`,
         method: 'POST',
-        params: {
+        data: {
           ref: `refs/heads/${GH_PAGES}`,
           sha
         }
